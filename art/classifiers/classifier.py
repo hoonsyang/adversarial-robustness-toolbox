@@ -38,6 +38,7 @@ class input_filter(abc.ABCMeta):
     """
     Metaclass to ensure that inputs are ndarray for all of the subclass generate and extract calls
     """
+
     def __init__(cls, name, bases, clsdict):
         """
         This function overrides any existing generate or extract methods with a new method that
@@ -51,7 +52,7 @@ class input_filter(abc.ABCMeta):
             """
 
             def replacement_function(self, *args, **kwargs):
-                if(len(args) > 0):
+                if len(args) > 0:
                     lst = list(args)
 
                 if 'x' in kwargs:
@@ -68,9 +69,10 @@ class input_filter(abc.ABCMeta):
                     if not isinstance(args[1], np.ndarray):
                         lst[1] = np.array(args[1])
 
-                if(len(args) > 0):
+                if len(args) > 0:
                     args = tuple(lst)
                 return fdict[func_name](self, *args, **kwargs)
+
             replacement_function.__doc__ = fdict[func_name].__doc__
             replacement_function.__name__ = "new_" + func_name
             return replacement_function
@@ -257,10 +259,12 @@ class Classifier(ABC, metaclass=input_filter):
         :rtype: `np.ndarray`
         :raises: `TypeError`
         """
-        if x.dtype in [np.uint8, np.uint16, np.uint32, np.uint64]:
-            raise TypeError('The data type of input data `x` is {} and cannot represent negative values. Consider '
-                            'changing the data type of the input data `x` to a type that supports negative values e.g. '
-                            'np.float32.'.format(x.dtype))
+        if x.dtype in [np.uint8, np.uint16, np.uint32, np.uint64] and (
+                self.preprocessing is not None and self.preprocessing[0] != 0):
+            raise TypeError('The type of input data `x` is {} which cannot represent negative values but preprocessing '
+                            'with mean {} could lead to negative values. Consider changing the type of the input data '
+                            '`x` to a type that supports negative values e.g. np.float32 or not using '
+                            'preprocessing.'.format(x.dtype, self.preprocessing[0]))
 
         if self.preprocessing is not None:
             sub, div = self.preprocessing
